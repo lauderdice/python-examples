@@ -54,18 +54,20 @@ for i in range(4):
 w = writer()
 wrap = writer_wrapper_new(w)
 wrap.send(None)  # initialize
+
 for i in range(4):
     wrap.send(i)
 
+def inner_generator() -> Generator:
+    yield "This will be yielded on the first call to next() of the outer generator"
+    return "This will be the returned value assigned to the left hand side of the outer generator"
 
-# def random_number_generator() -> Generator:
-#    yield random.random()
-#
-# def beautify_random_number_generator() -> Generator:
-#     for i in range(4):
-#         yield from random_number_generator()
-#         # enhanced_result = "Number " + str(result)
-#         # print(enhanced_result)
-#
-# bfg = beautify_random_number_generator()
-# pass
+
+def outer_generator() -> Generator:
+    returned_value = yield from inner_generator()
+    print(returned_value)
+    return
+
+outer = outer_generator()
+print("First call to next() yielded: ",next(outer))
+next(outer)

@@ -9,20 +9,25 @@ class EventLoopYieldFrom:
         self.tasks_to_run = deque([])
         self.sel = selectors.DefaultSelector()
 
+
     def create_task(self, coro):
         self.tasks_to_run.append(coro)
+
 
     def sock_recv(self, sock, n):
         yield 'wait_read', sock
         return sock.recv(n)
 
+
     def sock_sendall(self, sock, data):
         yield 'wait_write', sock
         sock.sendall(data)
-    
+
+
     def sock_accept(self, sock):
         yield 'wait_read', sock
         return sock.accept()
+
 
     def run(self):
         while True:
@@ -30,6 +35,7 @@ class EventLoopYieldFrom:
                 task = self.tasks_to_run.popleft()
                 try:
                     op, arg = next(task)
+                    print(op, arg)
                 except StopIteration:
                     continue
 
