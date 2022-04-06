@@ -85,7 +85,7 @@ class Server():
 
 
 @click.command()
-@click.option('--dataformat', default="proto", help='json, proto, avro',prompt='Data transfer format can be 2 types: json, proto')
+@click.option('--dataformat', default="proto", help='json, proto, avro',prompt='Data transfer format can be 3 types: json, proto, avro')
 @click.option('--port', default=12345, prompt='Port to run the server on')
 @click.option('--address', default="127.0.0.1",prompt='Address to run the server on')
 def main(address: str, port: int, dataformat: str):
