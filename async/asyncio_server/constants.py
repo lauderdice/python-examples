@@ -1,0 +1,1 @@
+END_OF_MESSAGE = b'\0'
