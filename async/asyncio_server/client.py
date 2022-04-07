@@ -34,7 +34,6 @@ async def run_single_client(req_count: int, address: str, port: int):
 
         length_data: bytes = await reader.readuntil(separator=C.END_OF_MESSAGE)
         message_size = int(length_data[:-1].decode())
-        print(message_size)
         message_data: bytes = await reader.readexactly(message_size)
         received_message = ResponseMessage()
         received_message.ParseFromString(message_data)
@@ -42,6 +41,7 @@ async def run_single_client(req_count: int, address: str, port: int):
     print('Closing the connection..')
     writer.close()
     await writer.wait_closed()
+
 async def test_client_heavy_traffic(clients: int, req_count_per_client: int, address: str, port: int):
     x = await asyncio.gather(
         *(run_single_client(req_count_per_client, address, port)
