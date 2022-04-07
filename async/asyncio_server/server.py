@@ -16,8 +16,10 @@ class Server():
         self._format = format
 
     def run(self):
-        asyncio.run(self._run_server())
-
+        try:
+            asyncio.run(self._run_server())
+        except KeyboardInterrupt:
+            print("Stopping the server..")
 
     async def handle_proto_data(self, reader: StreamReader, writer: StreamWriter):
         data_processor = DataProcessor()
@@ -58,6 +60,7 @@ class Server():
         async with server:
             await server.serve_forever()
 
+
     async def send_response(self, serialized_response: bytes, writer: StreamWriter):
         writer.write(str(len(serialized_response)).encode() + C.END_OF_MESSAGE)
         await writer.drain()
@@ -70,8 +73,14 @@ class Server():
 @click.option('--port', default=C.PORT, prompt='Port to run the server on')
 @click.option('--address', default=C.ADDRESS,prompt='Address to run the server on')
 def main(address: str, port: int, dataformat: str):
-    s = Server(address, port, DataTransferFormat(dataformat))
+    dformat = None
+    try:
+        dformat = DataTransferFormat(dataformat)
+    except ValueError:
+        exit("Unknown data format")
+    s = Server(address, port, DataTransferFormat(dformat))
     s.run()
+
 
 if __name__ == '__main__':
     main()
