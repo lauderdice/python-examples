@@ -1,35 +1,12 @@
-import asyncio
-import datetime
-import enum
-from typing import Tuple
 import constants as C
-import numpy as np
-import time
 import click
 import asyncio
 from asyncio import StreamReader, StreamWriter, IncompleteReadError
-from measurement_pb2 import RequestMessage, MeasurementRecord, ResponseMessage, MeasurementAverage
-class DataTransferFormat(enum.Enum):
-    JSON = "json"
-    Protobuf = "proto"
-    Avro = "avro"
 
-class DataProcessor():
-    def calculate_averages(self,message: RequestMessage) -> Tuple[ResponseMessage,int]:
-        calculated_averages = [self._get_maverage_from_mrecord(x) for x in message.measurement_records]
-        resp = ResponseMessage()
-        resp.measurement_averages.extend(calculated_averages)
-        return resp, len(message.measurement_records)
+from data_processor import DataProcessor
+from enums import DataTransferFormat
+from measurement_pb2 import RequestMessage
 
-    def _get_maverage_from_mrecord(self, mrecord: MeasurementRecord) -> MeasurementAverage:
-        avg_rec = MeasurementAverage()
-        avg_rec.id = mrecord.id
-        avg_rec.measurerName = mrecord.measurerName
-        avg_rec.download = float(np.mean(mrecord.download))
-        avg_rec.upload = float(np.mean(mrecord.upload))
-        avg_rec.ping = float(np.mean(mrecord.ping))
-        avg_rec.timestamp = mrecord.timestamp
-        return avg_rec
 
 class Server():
 
@@ -46,14 +23,18 @@ class Server():
         data_processor = DataProcessor()
         while True:
             try:
-                data: bytes = await reader.readuntil(separator=C.END_OF_MESSAGE)
+                length_data: bytes = await reader.readuntil(separator=C.END_OF_MESSAGE)
+                message_size = int(length_data[:-1].decode())
+                print(message_size)
+                message_data: bytes = await reader.readexactly(message_size)
                 received_message = RequestMessage()
-                received_message.ParseFromString(data[:-1])
+                received_message.ParseFromString(message_data)
+
                 response_message, number_of_records = data_processor.calculate_averages(received_message)
                 serialized_response = response_message.SerializeToString()
-                writer.write(serialized_response + C.END_OF_MESSAGE)
-                await writer.drain()
+                await self.send_response(serialized_response, writer)
                 print("Calculated averages for {} measurement records".format(number_of_records))
+
             except IncompleteReadError:
                 print("EOF detected. Exiting..")
                 break
@@ -78,16 +59,17 @@ class Server():
         async with server:
             await server.serve_forever()
 
-
-
-
-
+    async def send_response(self, serialized_response: bytes, writer: StreamWriter):
+        writer.write(str(len(serialized_response)).encode() + C.END_OF_MESSAGE)
+        await writer.drain()
+        writer.write(serialized_response)
+        await writer.drain()
 
 
 @click.command()
-@click.option('--dataformat', default="proto", help='json, proto, avro',prompt='Data transfer format can be 3 types: json, proto, avro')
-@click.option('--port', default=12345, prompt='Port to run the server on')
-@click.option('--address', default="127.0.0.1",prompt='Address to run the server on')
+@click.option('--dataformat', default=DataTransferFormat.Protobuf.value, help='json, proto, avro', prompt='Data transfer format can be 3 types: json, proto, avro')
+@click.option('--port', default=C.PORT, prompt='Port to run the server on')
+@click.option('--address', default=C.ADDRESS,prompt='Address to run the server on')
 def main(address: str, port: int, dataformat: str):
     s = Server(address, port, DataTransferFormat(dataformat))
     s.run()

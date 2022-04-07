@@ -6,3 +6,9 @@ class PersonName(enum.Enum):
     jirka = 1
     petr = 2
     jana = 3
+
+
+class DataTransferFormat(enum.Enum):
+    JSON = "json"
+    Protobuf = "proto"
+    Avro = "avro"
