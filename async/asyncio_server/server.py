@@ -25,7 +25,6 @@ class Server():
             try:
                 length_data: bytes = await reader.readuntil(separator=C.END_OF_MESSAGE)
                 message_size = int(length_data[:-1].decode())
-                print(message_size)
                 message_data: bytes = await reader.readexactly(message_size)
                 received_message = RequestMessage()
                 received_message.ParseFromString(message_data)
